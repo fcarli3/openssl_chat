@@ -60,7 +60,7 @@ void insert_user_online(string usr_name, long sock, unsigned char* sess_key){
     tmp_usr->usr_socket = sock;
     tmp_usr->session_key = sess_key;
     tmp_usr->cont_client_server = 0;
-	  tmp_usr->cont_server_client = 0;
+    tmp_usr->cont_server_client = 0;
     tmp_usr->decision_ready = false;
     tmp_usr->decision_result = false;
 
