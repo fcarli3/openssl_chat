@@ -28,8 +28,8 @@ bool send_usrs_online(string current_usr, long sock){
     // Serialize the list
     string str_usr_list = to_string_usr_list(current_usr);
 
-		// Get the session key between server and the current user
-		unsigned char* session_key = get_usr_session_key(current_usr);
+    // Get the session key between server and the current user
+    unsigned char* session_key = get_usr_session_key(current_usr);
     if(session_key == NULL){
       cout<<"\nError in send_usrs_online because of get_usr_session_key"<<endl;
       return false;
@@ -39,7 +39,7 @@ bool send_usrs_online(string current_usr, long sock){
     int pt_len = strlen(str_usr_list.c_str());
     unsigned char* pt = NULL;
     CHECK_MALLOC(pt, pt_len, sock);
-		copy(str_usr_list.begin(), str_usr_list.end(), pt);
+    copy(str_usr_list.begin(), str_usr_list.end(), pt);
 
     int iv_len = EVP_CIPHER_iv_length(SYMMETRIC_CIPHER_SESSION);
     unsigned char* iv = generate_random_bytes(iv_len);
@@ -55,25 +55,25 @@ bool send_usrs_online(string current_usr, long sock){
     unsigned char* tag = NULL;
     CHECK_MALLOC(tag, tag_len, sock);
 
-		// AAD = (msgtype || cont_server_client)
+    // AAD = (msgtype || cont_server_client)
     int aad_len = 1 + sizeof(int);
-		unsigned char* aad = NULL;
+    unsigned char* aad = NULL;
     CHECK_MALLOC(aad, aad_len, sock);
 
-		unsigned char* cont_byte = NULL;
+    unsigned char* cont_byte = NULL;
     CHECK_MALLOC(cont_byte, sizeof(int), sock);
     unsigned int cont = get_usr_cont_sc(current_usr);
     unsigned_int_to_byte(cont, cont_byte);
 
-		//increasing the server-client counter to use it in the next message from server to clients
-		increase_usr_cont_sc(current_usr);
+    //increasing the server-client counter to use it in the next message from server to clients
+    increase_usr_cont_sc(current_usr);
 
-		unsigned char* type_byte = NULL;
+    unsigned char* type_byte = NULL;
     CHECK_MALLOC(type_byte, sizeof(unsigned char), sock);
-		type_byte[0] = (unsigned char) MSG_TYPE_USRS_LIST;
+    type_byte[0] = (unsigned char) MSG_TYPE_USRS_LIST;
 
-		memcpy(aad, type_byte, 1);
-		memcpy(&aad[1], cont_byte, sizeof(int));
+    memcpy(aad, type_byte, 1);
+    memcpy(&aad[1], cont_byte, sizeof(int));
 
 
     // Encrypt the plaintext
@@ -95,7 +95,7 @@ bool send_usrs_online(string current_usr, long sock){
     CHECK_MALLOC(ct_len_byte, sizeof(int), sock);
     int_to_byte(ct_len, ct_len_byte);
 
-		unsigned char* aad_len_byte = NULL;
+    unsigned char* aad_len_byte = NULL;
     CHECK_MALLOC(aad_len_byte, sizeof(int), sock);
     int_to_byte(aad_len, aad_len_byte);
 
@@ -103,8 +103,8 @@ bool send_usrs_online(string current_usr, long sock){
     CHECK_MALLOC(msg, msg_len, sock);
 
     memcpy(msg, payload_len_byte, sizeof(int));
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION], aad_len_byte, sizeof(int));
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], aad, aad_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION], aad_len_byte, sizeof(int));
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], aad, aad_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len], ct_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int)], (unsigned char*) ct, ct_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
@@ -117,7 +117,7 @@ bool send_usrs_online(string current_usr, long sock){
 
     FREE5(pt, iv, ct, tag, cont_byte);
     FREE4(payload_len_byte, ct_len_byte, msg, type_byte);
-		FREE2(aad_len_byte, aad);
+    FREE2(aad_len_byte, aad);
 
     return true;
 }
@@ -160,15 +160,15 @@ unsigned char* read_usr_choice(long sock, int* choice, string current_usr){
     memcpy(&payload_dim, rcv_buff, sizeof(int)); //Converting rcv_buff from byte to int
 
 
-		// Read aad
+    // Read aad
     unsigned char* aad_len_byte = (unsigned char*) malloc(sizeof(unsigned char) * sizeof(int));
     ret = readn(sock, aad_len_byte, sizeof(int));
     S_CHECK_ERROR_INT(ret, NULL);
     int aad_len = 0;
     memcpy(&aad_len, aad_len_byte, sizeof(int)); //Converting aad_len from byte to int
 
-		unsigned char* aad = (unsigned char*) malloc(sizeof(unsigned char) * aad_len);
-		readn(sock, aad, aad_len);
+    unsigned char* aad = (unsigned char*) malloc(sizeof(unsigned char) * aad_len);
+    readn(sock, aad, aad_len);
 
 
     // Read ct
@@ -205,19 +205,19 @@ unsigned char* read_usr_choice(long sock, int* choice, string current_usr){
 
 
     //Convert cont from byte to int
-		unsigned int cont = 0;
+    unsigned int cont = 0;
     memcpy(&cont, &aad[1], sizeof(int));
-		increase_usr_cont_cs(current_usr);
+    increase_usr_cont_cs(current_usr);
 
 
     // Decrypt the ciphertext
     unsigned char* pt = (unsigned char*) malloc(sizeof(unsigned char) * (ct_len + 1));
     memset(pt, '\0', ct_len + 1);
     ret = sym_auth_decr(SYMMETRIC_CIPHER_SESSION, ct, ct_len, session_key, iv, aad, aad_len, pt, TAG_LEN, tag);
-		if(ret == -1) {
-			cout<<"Error: tag mismatch in read_usr_choice"<<endl;
-			return NULL;
-		}
+    if(ret == -1) {
+    	cout<<"Error: tag mismatch in read_usr_choice"<<endl;
+	return NULL;
+    }
 
 
     if( msg_type == MSG_TYPE_REQUEST_TO_TALK ){ //user wants to send a request to talk to someone, in the payload there will be the user who wants to talk with
@@ -258,7 +258,7 @@ bool send_request_refused(long src_sock, string current_usr){
     unsigned char* pt = NULL;
     CHECK_MALLOC(pt, pt_len, src_sock);
 
-		unsigned char* session_key = get_usr_session_key(current_usr);
+    unsigned char* session_key = get_usr_session_key(current_usr);
     if(session_key == NULL){
       cout<<"\nError in send_request_refused because of get_usr_session_key"<<endl;
       return false;
@@ -282,22 +282,22 @@ bool send_request_refused(long src_sock, string current_usr){
 
 
     int aad_len = 1 + sizeof(int);
-		unsigned char* aad = NULL;
+    unsigned char* aad = NULL;
     CHECK_MALLOC(aad, aad_len, src_sock);
 
-		unsigned char* cont_byte = NULL;
+    unsigned char* cont_byte = NULL;
     CHECK_MALLOC(cont_byte, sizeof(int), src_sock);
-		unsigned int cont = get_usr_cont_sc(current_usr);
-		unsigned_int_to_byte(cont, cont_byte);
+    unsigned int cont = get_usr_cont_sc(current_usr);
+    unsigned_int_to_byte(cont, cont_byte);
 
 
     // Create the message to send: aad (msgtype || cont_sc)
     unsigned char* type_byte = NULL;
     CHECK_MALLOC(type_byte, sizeof(unsigned char), src_sock);
     type_byte[0] = (unsigned char) MSG_TYPE_REQUEST_REFUSED;
-		memcpy(aad, type_byte, 1);
+    memcpy(aad, type_byte, 1);
     memcpy(&aad[1], cont_byte, sizeof(int));
-		increase_usr_cont_sc(current_usr);
+    increase_usr_cont_sc(current_usr);
 
     // Encrypt the plaintext
     ct_len = sym_auth_encr(SYMMETRIC_CIPHER_SESSION, pt, pt_len, session_key, iv, aad, aad_len, ct, tag_len, tag);
@@ -309,7 +309,7 @@ bool send_request_refused(long src_sock, string current_usr){
     // Create the message to send
     int msg_len = HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len + iv_len;
 
-		int payload_len = msg_len - HEADER_LEN_SESSION;
+    int payload_len = msg_len - HEADER_LEN_SESSION;
     unsigned char* payload_len_byte = NULL;
     CHECK_MALLOC(payload_len_byte, sizeof(int), src_sock);
     int_to_byte(payload_len, payload_len_byte);
@@ -320,9 +320,9 @@ bool send_request_refused(long src_sock, string current_usr){
     int_to_byte(ct_len, ct_len_byte);
 
 
-		unsigned char* aad_len_byte = NULL;
+    unsigned char* aad_len_byte = NULL;
     CHECK_MALLOC(aad_len_byte, sizeof(int), src_sock);
-		int_to_byte(aad_len, aad_len_byte);
+    int_to_byte(aad_len, aad_len_byte);
 
 
     unsigned char* msg = NULL;
@@ -333,8 +333,8 @@ bool send_request_refused(long src_sock, string current_usr){
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], (unsigned char*) aad, aad_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len], (unsigned char*) ct_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int)], (unsigned char*) ct, ct_len);
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
 
     ret = sendn(src_sock, msg, msg_len);
     S_CHECK_ERROR_INT(ret, false);
@@ -363,7 +363,7 @@ bool forward_request_to_talk(string usr2, string current_usr){
     iv = generate_random_bytes(iv_len);
     if(iv == NULL){
         cout<<"\nError in forward_request_to_talk because of generate_random_bytes"<<endl;
-      return false;
+        return false;
     }
 
     int ct_len = pt_len + EVP_CIPHER_block_size(SYMMETRIC_CIPHER_SESSION);
@@ -377,26 +377,26 @@ bool forward_request_to_talk(string usr2, string current_usr){
 
 
     int aad_len = 1 + sizeof(int);
-		unsigned char* aad = NULL;
+    unsigned char* aad = NULL;
     CHECK_MALLOC(aad, aad_len, sock);
 
 
-		unsigned char* cont_byte = NULL;
+    unsigned char* cont_byte = NULL;
     CHECK_MALLOC(cont_byte, sizeof(int), sock);
-		unsigned int cont = get_usr_cont_sc(usr2); //cont of the client to which the request is forwarding
-		unsigned_int_to_byte(cont, cont_byte);
+    unsigned int cont = get_usr_cont_sc(usr2); //cont of the client to which the request is forwarding
+    unsigned_int_to_byte(cont, cont_byte);
 
 
     // Create the message to send: aad (msgtype || cont_sc_2)
     unsigned char* type_byte = NULL;
     CHECK_MALLOC(type_byte, sizeof(unsigned char), sock);
     type_byte[0] = (unsigned char) MSG_TYPE_FORWARD_REQUEST_TO_TALK;
-		memcpy(aad, type_byte, 1);
+    memcpy(aad, type_byte, 1);
     memcpy(&aad[1], cont_byte, sizeof(int));
-		increase_usr_cont_sc(usr2);
+    increase_usr_cont_sc(usr2);
 
 
-		// Create the message to send: plaintext (current_usr)
+    // Create the message to send: plaintext (current_usr)
     copy(current_usr.begin(), current_usr.end(), pt); // insert the name of who did the request
 
     // Encrypt the plaintext
@@ -426,20 +426,20 @@ bool forward_request_to_talk(string usr2, string current_usr){
     int_to_byte(ct_len, ct_len_byte);
 
 
-		unsigned char* aad_len_byte = NULL;
+    unsigned char* aad_len_byte = NULL;
     CHECK_MALLOC(aad_len_byte, sizeof(int), sock);
-		int_to_byte(aad_len, aad_len_byte);
+    int_to_byte(aad_len, aad_len_byte);
 
 
-		unsigned char* msg = NULL;
+    unsigned char* msg = NULL;
     CHECK_MALLOC(msg, msg_len, sock);
     memcpy(msg, payload_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION], aad_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], (unsigned char*) aad, aad_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len], (unsigned char*) ct_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int)], (unsigned char*) ct, ct_len);
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
 
     long usr2_sock = get_usr_socket(usr2);
     if(usr2_sock == -1){
