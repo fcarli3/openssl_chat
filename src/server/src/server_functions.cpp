@@ -468,7 +468,7 @@ string wait_for_client_decision(long sock, string current_usr, bool* fun_ret){
     ret = readn(sock, rcv_buff, HEADER_LEN_SESSION);
     S_CHECK_ERROR_INT(ret, "ERR");
 
-		unsigned char* session_key = get_usr_session_key(current_usr);
+    unsigned char* session_key = get_usr_session_key(current_usr);
 
     int payload_dim = 0;
     memcpy(&payload_dim, rcv_buff, sizeof(int)); //Converting byte to int
@@ -489,7 +489,7 @@ string wait_for_client_decision(long sock, string current_usr, bool* fun_ret){
 
     // Reading msg_type
     char msg_type = (char) aad[0];
-    if( MSG_TYPE_REQUEST_ACCEPTED != msg_type && MSG_TYPE_REQUEST_REFUSED != msg_type && MSG_TYPE_LOGOUT != msg_type && MSG_TYPE_TIMEOUT_EXPIRED != msg_type){
+    if(MSG_TYPE_REQUEST_ACCEPTED != msg_type && MSG_TYPE_REQUEST_REFUSED != msg_type && MSG_TYPE_LOGOUT != msg_type && MSG_TYPE_TIMEOUT_EXPIRED != msg_type){
         cerr<<"Error: invalid message type in wait_for_client_decision"<<endl;
         return "ERR";
     }
@@ -499,7 +499,7 @@ string wait_for_client_decision(long sock, string current_usr, bool* fun_ret){
     memcpy(&cont_cs, &aad[1], sizeof(int));
 
 
-    if( cont_cs != get_usr_cont_cs(current_usr) ){
+    if(cont_cs != get_usr_cont_cs(current_usr)){
         cerr<<"Error: invalid cont in wait_for_client_decision"<< endl;
         return "ERR";
     }
@@ -549,8 +549,8 @@ string wait_for_client_decision(long sock, string current_usr, bool* fun_ret){
 
     if(msg_type == MSG_TYPE_REQUEST_ACCEPTED){
         *fun_ret = true;
-    }
-    else{
+	    
+    } else {
 
       *fun_ret = false;
       if(MSG_TYPE_TIMEOUT_EXPIRED == msg_type){
@@ -592,21 +592,21 @@ bool forward_decision(string usr_that_make_request, string usr_that_receive_requ
       return false;
     }
 
-		string usr_that_receive_request_key_path = "";
-		EVP_PKEY* usr_that_receive_request_pub_key = NULL;
-		int usr_that_receive_request_pub_key_len = 0;
-		unsigned char* usr_that_receive_request_pub_key_byte = NULL;
+    string usr_that_receive_request_key_path = "";
+    EVP_PKEY* usr_that_receive_request_pub_key = NULL;
+    int usr_that_receive_request_pub_key_len = 0;
+    unsigned char* usr_that_receive_request_pub_key_byte = NULL;
 
-		if(ret){
-			// Retrieve the public key of usr_that_receive_request
-			usr_that_receive_request_key_path = "./../pub_keys/" + usr_that_receive_request + "_public_key.pem";
-			usr_that_receive_request_pub_key = read_pub_key(usr_that_receive_request_key_path);
+    if(ret){
+      // Retrieve the public key of usr_that_receive_request
+      usr_that_receive_request_key_path = "./../pub_keys/" + usr_that_receive_request + "_public_key.pem";
+      usr_that_receive_request_pub_key = read_pub_key(usr_that_receive_request_key_path);
       if(usr_that_receive_request_pub_key == NULL){
         cout<<"\nError in forward_decision because of read_pub_key"<<endl;
         return false;
       }
-			usr_that_receive_request_pub_key_byte = get_public_key_to_byte(usr_that_receive_request_pub_key, &usr_that_receive_request_pub_key_len);
-		}
+      usr_that_receive_request_pub_key_byte = get_public_key_to_byte(usr_that_receive_request_pub_key, &usr_that_receive_request_pub_key_len);
+    }
 
 
     // Encrypt the plaintext
@@ -625,54 +625,53 @@ bool forward_decision(string usr_that_make_request, string usr_that_receive_requ
     }
 
     int ct_len = pt_len + EVP_CIPHER_block_size(SYMMETRIC_CIPHER_SESSION);
-    unsigned char* ct = NULL; //(unsigned char*) malloc(sizeof(unsigned char) * ct_len);
+    unsigned char* ct = NULL; 
     CHECK_MALLOC(ct, ct_len, sock);
 
 
     int tag_len = TAG_LEN;
-    unsigned char* tag = NULL; //(unsigned char*) malloc(sizeof(unsigned char) * tag_len);
+    unsigned char* tag = NULL; 
     CHECK_MALLOC(tag, tag_len, sock);
 
 
-		// Create the aad and the message type: (ret==true ==> aad:(cont||kpub)      ret==false ==> aad:(cont))
-		int aad_len = -1;
-		unsigned char* cont_byte = NULL; //(unsigned char*) malloc(sizeof(int));
+    // Create the aad and the message type: (ret==true ==> aad:(cont||kpub)     
+    int aad_len = -1;
+    unsigned char* cont_byte = NULL; 
     CHECK_MALLOC(cont_byte, sizeof(int), sock);
-		unsigned int cont = get_usr_cont_sc(usr_that_make_request);
-		unsigned_int_to_byte(cont, cont_byte);
-		unsigned char* type_byte = NULL; //(unsigned char*) malloc(sizeof(unsigned char));
+    unsigned int cont = get_usr_cont_sc(usr_that_make_request);
+    unsigned_int_to_byte(cont, cont_byte);
+    unsigned char* type_byte = NULL; 
     CHECK_MALLOC(type_byte, sizeof(unsigned char), sock);
 
-		unsigned char* aad = NULL;
+    unsigned char* aad = NULL;
 
-		if(ret){ // Request accepted
-			aad_len = 1 + sizeof(int) + usr_that_receive_request_pub_key_len;
-			aad = NULL; //(unsigned char*) malloc(sizeof(unsigned char) * aad_len);
+    if(ret){ // Request accepted
+      aad_len = 1 + sizeof(int) + usr_that_receive_request_pub_key_len;
+      aad = NULL; 
       CHECK_MALLOC(aad, aad_len, sock);
 
       type_byte[0] = (unsigned char) MSG_TYPE_FORWARD_REQUEST_ACCEPT;
 
       memcpy(aad, type_byte, 1);
-			memcpy(&aad[1], cont_byte, sizeof(int));
-	    memcpy(&aad[1 + sizeof(int)], usr_that_receive_request_pub_key_byte, usr_that_receive_request_pub_key_len);
+      memcpy(&aad[1], cont_byte, sizeof(int));
+      memcpy(&aad[1 + sizeof(int)], usr_that_receive_request_pub_key_byte, usr_that_receive_request_pub_key_len);
 
-			unsigned char* usr_that_receive_request_pub_key_len_byte = NULL; //(unsigned char*) malloc(sizeof(unsigned char*) * sizeof(int));
+      unsigned char* usr_that_receive_request_pub_key_len_byte = NULL; 
       CHECK_MALLOC(usr_that_receive_request_pub_key_len_byte, sizeof(int), sock);
-	    int_to_byte(usr_that_receive_request_pub_key_len, usr_that_receive_request_pub_key_len_byte);
+      int_to_byte(usr_that_receive_request_pub_key_len, usr_that_receive_request_pub_key_len_byte);
 
-		}
-		else{ // Request refused
-			aad_len = 1 + sizeof(int);
-			aad = NULL; //(unsigned char*) malloc(sizeof(unsigned char) * aad_len);
+   } else { // Request refused
+      aad_len = 1 + sizeof(int);
+      aad = NULL;
       CHECK_MALLOC(aad, aad_len, sock);
 
       type_byte[0] = (unsigned char) MSG_TYPE_FORWARD_REQUEST_REFUSED;
 
-			memcpy(aad, type_byte, 1);
+      memcpy(aad, type_byte, 1);
       memcpy(&aad[1], cont_byte, sizeof(int));
-		}
+   }
 
-		increase_usr_cont_sc(usr_that_make_request);
+    increase_usr_cont_sc(usr_that_make_request);
 
     // Encrypt the plaintext
     ct_len = sym_auth_encr(SYMMETRIC_CIPHER_SESSION, pt, pt_len, dst_Ksess, iv, aad, aad_len, ct, tag_len, tag);
@@ -696,7 +695,7 @@ bool forward_decision(string usr_that_make_request, string usr_that_receive_requ
     int_to_byte(ct_len, ct_len_byte);
 
 
-		unsigned char* aad_len_byte = NULL;
+    unsigned char* aad_len_byte = NULL;
     CHECK_MALLOC(aad_len_byte, sizeof(int), sock);
     int_to_byte(aad_len, aad_len_byte);
 
@@ -707,11 +706,11 @@ bool forward_decision(string usr_that_make_request, string usr_that_receive_requ
 
     memcpy(msg, payload_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION], aad_len_byte, sizeof(int));
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], aad, aad_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], aad, aad_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len], (unsigned char*) ct_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int)], (unsigned char*) ct, ct_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
 
     fun_ret = sendn(dst_sock, msg, msg_len);
     S_CHECK_ERROR_INT(fun_ret, false);
@@ -745,17 +744,17 @@ bool send_pub_key(string usr_that_make_request, string usr_that_receive_request)
     }
 
 
-		// Retrieve the public key of usr_that_make_request
-		string usr_that_make_request_key_path = "./../pub_keys/" + usr_that_make_request + "_public_key.pem";
-		EVP_PKEY* usr_that_make_request_pub_key = read_pub_key(usr_that_make_request_key_path);
+    // Retrieve the public key of usr_that_make_request
+    string usr_that_make_request_key_path = "./../pub_keys/" + usr_that_make_request + "_public_key.pem";
+    EVP_PKEY* usr_that_make_request_pub_key = read_pub_key(usr_that_make_request_key_path);
     if(usr_that_make_request_pub_key == NULL){
       cout<<"\nError in send_pub_key because of read_pub_key"<<endl;
       return false;
     }
 
 
-		int usr_that_make_request_pub_key_len = 0;
-		unsigned char* usr_that_make_request_pub_key_byte = NULL;
+    int usr_that_make_request_pub_key_len = 0;
+    unsigned char* usr_that_make_request_pub_key_byte = NULL;
     usr_that_make_request_pub_key_byte = get_public_key_to_byte(usr_that_make_request_pub_key, &usr_that_make_request_pub_key_len);
     if(usr_that_make_request_pub_key_byte == NULL){
       cout<<"\nError in send_pub_key because of get_public_key_to_byte"<<endl;
@@ -787,31 +786,31 @@ bool send_pub_key(string usr_that_make_request, string usr_that_receive_request)
     CHECK_MALLOC(tag, tag_len, sock);
 
 
-		// Create the aad (cont || kpub)
-		unsigned char* cont_byte = NULL;
-    CHECK_MALLOC(cont_byte, sizeof(int), sock);
-		unsigned int cont = get_usr_cont_sc(usr_that_receive_request);
-		unsigned_int_to_byte(cont, cont_byte);
+    // Create the aad (cont || kpub)
+    unsigned char* cont_byte = NULL;
+    CHECK_MALLOC(cont_byte, sizeof(int), sock); 
+    unsigned int cont = get_usr_cont_sc(usr_that_receive_request);
+    unsigned_int_to_byte(cont, cont_byte);
 
 
-		int aad_len = sizeof(int) + usr_that_make_request_pub_key_len;
-		unsigned char* aad = NULL;
+    int aad_len = sizeof(int) + usr_that_make_request_pub_key_len;
+    unsigned char* aad = NULL;
     CHECK_MALLOC(aad, aad_len, sock);
-		memcpy(aad, cont_byte, sizeof(int));
+    memcpy(aad, cont_byte, sizeof(int));
     memcpy(&aad[sizeof(int)], usr_that_make_request_pub_key_byte, usr_that_make_request_pub_key_len);
 
 
-		unsigned char* usr_that_make_request_pub_key_len_byte = NULL;
+    unsigned char* usr_that_make_request_pub_key_len_byte = NULL;
     CHECK_MALLOC(usr_that_make_request_pub_key_len_byte, sizeof(int), sock);
     int_to_byte(usr_that_make_request_pub_key_len, usr_that_make_request_pub_key_len_byte);
 
 
-		unsigned char* type_byte = NULL;
+    unsigned char* type_byte = NULL;
     CHECK_MALLOC(type_byte, sizeof(unsigned char), sock);
-		type_byte[0] = (unsigned char) MSG_TYPE_EXCHANGE_USR_PUB_KEY;
+    type_byte[0] = (unsigned char) MSG_TYPE_EXCHANGE_USR_PUB_KEY;
 
 
-		increase_usr_cont_sc(usr_that_receive_request);
+    increase_usr_cont_sc(usr_that_receive_request);
 
 
     //Create the plaintext
@@ -838,7 +837,7 @@ bool send_pub_key(string usr_that_make_request, string usr_that_receive_request)
     int_to_byte(ct_len, ct_len_byte);
 
 
-		unsigned char* aad_len_byte = NULL;
+    unsigned char* aad_len_byte = NULL;
     CHECK_MALLOC(aad_len_byte, sizeof(int), sock);
     int_to_byte(aad_len, aad_len_byte);
 
@@ -848,11 +847,11 @@ bool send_pub_key(string usr_that_make_request, string usr_that_receive_request)
 
     memcpy(msg, payload_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION], aad_len_byte, sizeof(int));
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], aad, aad_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int)], aad, aad_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len], (unsigned char*) ct_len_byte, sizeof(int));
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int)], (unsigned char*) ct, ct_len);
     memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len], (unsigned char*) tag, tag_len);
-		memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
+    memcpy((unsigned char*) &msg[HEADER_LEN_SESSION + sizeof(int) + aad_len + sizeof(int) + ct_len + tag_len], (unsigned char*) iv, iv_len);
 
     ret = sendn(sock, msg, msg_len);
     S_CHECK_ERROR_INT(ret, false);
@@ -871,7 +870,7 @@ bool create_session_key_usr_talk(string usr_name, string usr_2){
 
     bool ret = false;
 
-	  ret = read_and_forward_M_1_1(usr_name, usr_2);
+    ret = read_and_forward_M_1_1(usr_name, usr_2);
     if(ret == false){
       cout<<"\nError in create_session_key_usr_talk because of read_and_forward_M_1_1"<<endl;
       return false;
@@ -992,15 +991,13 @@ int read_and_forward_session(string usr_name, string usr_2){
 
   // Read msg_type
   char msg_type = (char) aad[0];
-  if( MSG_TYPE_SESSION_MSG != msg_type){
+  if(MSG_TYPE_SESSION_MSG != msg_type){
       if(msg_type == MSG_TYPE_LOGOUT){
         cout<<"\nUser "<<usr_name<<" wants to logout."<<endl;
-      }
-      else{
+      } else {
         if(msg_type == MSG_TYPE_FAKE_LOGOUT){ //Telling server's thread of this user to end the session
           return -2;
-        }
-        else{
+        } else {
           cerr<<"Error: invalid msg_type in read_and_forward_session"<<endl;
           return -1;
         }
@@ -1151,7 +1148,7 @@ void* Client_management(void* client_fd){
 
 
     //Read client's public key
-		EVP_PKEY* pubK = read_pub_key("./../pub_keys/" + usrname + "_public_key.pem");
+    EVP_PKEY* pubK = read_pub_key("./../pub_keys/" + usrname + "_public_key.pem");
     if(pubK == NULL){
       cout<<"\nError in Client_management because of read_pub_key (usrname: "<<usrname<<")"<<endl;
       cout<<"Shutting down server's thread of "<<usrname<<endl;
@@ -1242,8 +1239,8 @@ void* Client_management(void* client_fd){
                 }
 
                 goto start_point;
-            }
-            else{
+		    
+            } else {
 
                 set_usr_state(usr_2, true); //set immediatly user 2 state (busy)
                 error_val = forward_request_to_talk(usr_2, usrname); // send the request to talk from thread of usr_name to client usr_2
@@ -1268,8 +1265,8 @@ void* Client_management(void* client_fd){
                     delete_from_list(usrname);
                     pthread_exit((void*) 1);
                   }
-                }
-                else{
+			
+                } else {
 
                  cout<<"\n(usrname: "<<usrname<<") Request refused... back to send list"<<endl;
                  set_usr_decision_ready(usr_2, false);
@@ -1287,17 +1284,17 @@ void* Client_management(void* client_fd){
       {
           cout<<"\n(username: "<<usrname<<") Thread waiting..."<<endl;
 
-    				set_usr_state(usrname, false); //user is waiting, so ists state has to be set free
-    				bool ret = false;
-    				string usr2 = "";
-    				bool in_wait = true;
+	  set_usr_state(usrname, false); //user is waiting, so its state has to be set to free
+	  bool ret = false;
+	  string usr2 = "";
+	  bool in_wait = true;
 
-    				// Cycle untile someone made a request to us
-    				while(in_wait){
+	  // Cycle untile someone made a request to us
+          while(in_wait){
 
-    						cout<<"\n(username: "<<usrname<<") is waiting for request..."<<endl;
-    						ret = false;
-    						usr2 = wait_for_client_decision(fd, usrname, &ret); //Thread del server attende che l'utente decida se accettare o rifiutare una richiesta che ha ricevuto
+	  	cout<<"\n(username: "<<usrname<<") is waiting for request..."<<endl;
+		ret = false;
+		usr2 = wait_for_client_decision(fd, usrname, &ret); 
 
                 if(strcmp(usr2.c_str(), "ERR") == 0){
                   cout<<"Error in Client_management because of wait_for_client_decision (usrname: "<<usrname<<")"<<endl;
@@ -1307,13 +1304,13 @@ void* Client_management(void* client_fd){
 
                 usr_2 = usr2;
 
-    						if(ret == false) { // timeout exprired or request refused
+    		if(ret == false) { // timeout exprired or request refused
                     if(strcmp(usr2.c_str(), "TIMEOUT_EXPIRED") == 0){
                       goto start_point;
                     }
 
-    								set_usr_state(usrname, false);
-    								error_val = forward_decision(usr2, usrname, ret); // case where the thread forwards the rejection of the request
+    		    set_usr_state(usrname, false);
+    		    error_val = forward_decision(usr2, usrname, ret); // case where the thread forwards the rejection of the request
                     if(error_val == false){
                       cout<<"\nError in Client_management because of forward_decision (usrname: "<<usrname<<" - request refused)"<<endl;
                       delete_from_list(usrname);
@@ -1327,12 +1324,11 @@ void* Client_management(void* client_fd){
                       decision_cv.notify_one();
                     }
 
-    						}
-    						else{ //request accepted
+    		} else { //request accepted
 
-    								in_wait = false; // exit from wait loop
-    								set_usr_state(usrname, true);
-    								error_val = forward_decision(usr2, usrname, ret); // case where the thread forwards the acceptance of the request
+    		    in_wait = false; // exit from wait loop
+    		    set_usr_state(usrname, true);
+    		    error_val = forward_decision(usr2, usrname, ret); // case where the thread forwards the acceptance of the request
                     if(error_val == false){
                       cout<<"\nError in Client_management because of forward_decision (usrname: "<<usrname<<" - request accepted)"<<endl;
                       delete_from_list(usrname);
@@ -1352,10 +1348,10 @@ void* Client_management(void* client_fd){
                       delete_from_list(usrname);
                       pthread_exit((void*) 1);
                     }
-    						}
-    				}
+    		  }
+    	    }
 
-    				error_val = create_session_key_usr_to_wait(usrname, usr2); // Create a session key between clients
+    	    error_val = create_session_key_usr_to_wait(usrname, usr2); // Create a session key between clients
 
             if(error_val == false){
               cout<<"\nError in Client_management because of create_session_key_usr_to_wait (usrname: "<<usrname<<")"<<endl;
@@ -1397,8 +1393,7 @@ void* Client_management(void* client_fd){
       if(r == -2){
         logout = true;
         cout<<"\nThread "<<usrname<<" is logging out..."<<endl;
-      }
-      else{
+      } else {
         if(r == -1){
           logout = true;
           cout<<"\nError in Client_management because of read_and_forward_session (usrname: "<<usrname<<")"<<endl;
