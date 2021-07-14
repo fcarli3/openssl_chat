@@ -5,7 +5,7 @@ This project represents a multithread client-server chat application in which ev
 When a client correctly connects to the server, the server will show a list of online users to this client, then the client can request a chat session with other clients. This client will wait for the peer response. As for now there are 3 users registered to the server. If you want to create your own client, you should generate a pair of 2048-bit RSA keys and the private key must be protected by password. The server has a public certificate that is granted to be safe by the CA SimpleAuthority.
 
 ## Prerequisites 
-The programs needs the installation of [OpenSSL](https://github.com/openssl/openssl), a TLS/SSL and crypto library.
+The programs needs the installation of [OpenSSL](https://github.com/openssl/openssl), a TLS/SSL and crypto library, and [SimpleAuthority](https://simpleauthority.com/), a trusted CA.
 
 ### Install on Ubuntu/Debian
 First of all, install build dependencies, then clone OpenSSL and configure it.
