@@ -1,5 +1,5 @@
 # OpenSSL Online Chat
-This project represents a multithread client-server chat application in which every communication between peers is encrypted using OpenSSL APIs.
+This repository contains the final project of Applied Cryptography course (Master's Degree in Cybersecurity at [University of Pisa](https://cysec.unipi.it/)). The project has been developed for educational purposes and represents a multithread client-server chat application in which every communication between peers is encrypted using OpenSSL APIs.
 
 ## How it works
 When a client correctly connects to the server, the server will show a list of online users to this client, then the client can request a chat session with other clients. This client will wait for the peer response. As for now there are 3 users registered to the server. If you want to create your own client, you should generate a pair of 2048-bit RSA keys and the private key must be protected by password. The server has a public certificate that is granted to be safe by the CA SimpleAuthority.
